@@ -7,11 +7,6 @@ const nextConfig = {
     unoptimized: true
   },
   
-  // Отключаем Prisma во время сборки
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client']
-  },
-  
   // Headers для Telegram Web App
   async headers() {
     return [

@@ -8,23 +8,136 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { mockData } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 
+// Компонент формы для создания/редактирования услуги
+interface ServiceFormProps {
+  onClose: () => void;
+  onSave: (serviceData: { name: string; description?: string; price: number; duration: number }) => void;
+  initialData?: any;
+}
+
+const ServiceForm: React.FC<ServiceFormProps> = ({ onClose, onSave, initialData }) => {
+  const [formData, setFormData] = useState({
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+    price: initialData?.price || 0,
+    duration: initialData?.duration || 0
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || formData.price <= 0 || formData.duration <= 0) {
+      return;
+    }
+    onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-gray-900/95 backdrop-blur-xl rounded-xl p-6 w-full max-w-md border border-white/20">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white">
+            {initialData ? 'Изменить услугу' : 'Добавить услугу'}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-white/60 hover:text-white transition-colors"
+          >
+            <StyledIcon name="arrow-left" size="sm" variant="default" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-white/80 mb-2">
+              Название услуги *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Введите название"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-white/80 mb-2">
+              Описание
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Описание услуги (необязательно)"
+              rows={3}
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Цена (₽) *
+              </label>
+              <input
+                type="number"
+                value={formData.price}
+                onChange={(e) => setFormData({...formData, price: parseInt(e.target.value) || 0})}
+                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="0"
+                min="0"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Длительность (мин) *
+              </label>
+              <input
+                type="number"
+                value={formData.duration}
+                onChange={(e) => setFormData({...formData, duration: parseInt(e.target.value) || 0})}
+                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="0"
+                min="0"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-end space-x-3 mt-6">
+            <NeonButton
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={onClose}
+            >
+              Отмена
+            </NeonButton>
+            <NeonButton
+              variant="primary"
+              size="sm"
+              type="submit"
+            >
+              {initialData ? 'Сохранить' : 'Добавить'}
+            </NeonButton>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function AdminServicesPage() {
   const { hapticFeedback } = useTelegram();
   const [services, setServices] = useState(mockData.services);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const categories = [
-    { id: 'all', name: 'Все услуги' },
-    { id: 'hair', name: 'Парикмахерские' },
-    { id: 'nails', name: 'Маникюр и педикюр' },
-    { id: 'face', name: 'Косметология' }
-  ];
-
-  const filteredServices = selectedCategory === 'all'    
-    ? services
-    : services.filter(service => service.name.toLowerCase().includes(selectedCategory.toLowerCase()));
+  const filteredServices = services.filter(service => 
+    service.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleAddService = () => {
     hapticFeedback.impact('light');
@@ -34,6 +147,15 @@ export default function AdminServicesPage() {
   const handleEditService = (service: any) => {
     hapticFeedback.impact('light');
     setEditingService(service);
+  };
+
+  const handleSaveEdit = (serviceData: any) => {
+    setServices(services.map(s => 
+      s.id === editingService.id 
+        ? { ...s, ...serviceData, updatedAt: new Date().toISOString() }
+        : s
+    ));
+    setEditingService(null);
   };
 
   const handleDeleteService = (serviceId: number) => {
@@ -76,21 +198,15 @@ export default function AdminServicesPage() {
           </NeonButton>
         </div>
 
-        {/* Фильтры категорий */}
-        <div className="flex space-x-1 mb-4 overflow-x-auto pb-2">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 ${
-                selectedCategory === category.id
-                  ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg border border-primary-400/30 backdrop-blur-sm'
-                  : 'bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20'
-              }`}
-            >
-              {category.name}
-            </button>
-          ))}
+        {/* Поиск услуг */}
+        <div className="mb-4">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="Поиск услуг..."
+          />
         </div>
 
         {/* Список услуг */}
@@ -174,86 +290,29 @@ export default function AdminServicesPage() {
 
         {/* Форма добавления услуги */}
         {showAddForm && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-900/95 backdrop-blur-xl rounded-xl p-6 w-full max-w-md border border-white/20">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Добавить услугу</h3>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="text-white/60 hover:text-white transition-colors"
-                >
-                  <StyledIcon name="arrow-left" size="sm" variant="default" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
-                    Название услуги
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="Введите название"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
-                    Категория
-                  </label>
-                  <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <option value="hair">Парикмахерские услуги</option>
-                    <option value="nails">Маникюр и педикюр</option>
-                    <option value="face">Косметология</option>
-                  </select>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Цена (₽)
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Длительность (мин)
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-end space-x-3 mt-6">
-                <NeonButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAddForm(false)}
-                >
-                  Отмена
-                </NeonButton>
-                <NeonButton
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    // Логика добавления услуги
-                    setShowAddForm(false);
-                  }}
-                >
-                  Добавить
-                </NeonButton>
-              </div>
-            </div>
-          </div>
+          <ServiceForm
+            onClose={() => setShowAddForm(false)}
+            onSave={(serviceData) => {
+              const newService = {
+                id: Date.now(),
+                ...serviceData,
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+              setServices([newService, ...services]);
+              setShowAddForm(false);
+            }}
+          />
+        )}
+
+        {/* Форма редактирования услуги */}
+        {editingService && (
+          <ServiceForm
+            initialData={editingService}
+            onClose={() => setEditingService(null)}
+            onSave={handleSaveEdit}
+          />
         )}
       </div>
     </Layout>

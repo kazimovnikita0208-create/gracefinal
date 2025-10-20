@@ -57,7 +57,6 @@ model Service {
   description String?
   price       Int      // Цена в копейках
   duration    Int      // Длительность в минутах
-  category    String   // hair, nails, face
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 
-// Mock данные для fallback
+// Mock данные для приложения
 const mockServices = [
   {
     id: 1,
@@ -66,51 +65,10 @@ const mockServices = [
 ];
 
 export async function GET() {
-  try {
-    // Проверяем, есть ли DATABASE_URL
-    if (!process.env.DATABASE_URL) {
-      console.log('DATABASE_URL not found, using mock data');
-      return NextResponse.json({
-        success: true,
-        data: mockServices
-      });
-    }
-
-    const prisma = new PrismaClient();
-    const services = await prisma.service.findMany({
-      where: {
-        isActive: true
-      },
-      include: {
-        masterServices: {
-          include: {
-            master: true
-          }
-        },
-        _count: {
-          select: {
-            appointments: true
-          }
-        }
-      },
-      orderBy: {
-        name: 'asc'
-      }
-    });
-
-    await prisma.$disconnect();
-
-    return NextResponse.json({
-      success: true,
-      data: services
-    });
-  } catch (error) {
-    console.error('Error fetching services:', error);
-    console.log('Falling back to mock data');
-    
-    return NextResponse.json({
-      success: true,
-      data: mockServices
-    });
-  }
+  console.log('Fetching services from mock data');
+  
+  return NextResponse.json({
+    success: true,
+    data: mockServices
+  });
 }

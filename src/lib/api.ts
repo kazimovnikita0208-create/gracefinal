@@ -25,7 +25,10 @@ class ApiClient {
   private getTelegramInitData(): string | undefined {
     if (typeof window === 'undefined') return undefined;
     const tg = (window as any).Telegram?.WebApp;
-    return tg?.initData as string | undefined;
+    const initData = tg?.initData as string | undefined;
+    console.log('🔍 Telegram WebApp:', tg);
+    console.log('🔍 Telegram InitData:', initData);
+    return initData;
   }
 
   private async request<T>(
@@ -34,14 +37,17 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
     
+    const telegramData = this.getTelegramInitData();
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
-        ...(this.getTelegramInitData() ? { 'X-Telegram-Init-Data': this.getTelegramInitData()! } : {}),
+        ...(telegramData ? { 'X-Telegram-Init-Data': telegramData } : {}),
         ...options.headers,
       },
       ...options,
     };
+    
+    console.log('🔍 Отправляем запрос с заголовками:', config.headers);
 
     try {
       const response = await fetch(url, config);

@@ -268,6 +268,60 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 
+// Middleware для аутентификации через Telegram
+app.use(async (req, res, next) => {
+  try {
+    // Получаем данные Telegram из заголовков
+    const telegramInitData = req.headers['x-telegram-init-data'];
+    
+    if (telegramInitData) {
+      // Парсим initData (это URL-encoded строка)
+      const urlParams = new URLSearchParams(telegramInitData);
+      const userParam = urlParams.get('user');
+      
+      if (userParam) {
+        const userData = JSON.parse(userParam);
+        console.log('🔐 Telegram пользователь:', userData);
+      
+      // Ищем или создаем пользователя в базе данных
+      const prismaClient = await getPrismaClient();
+      let user = await prismaClient.user.findFirst({
+        where: { telegramId: BigInt(userData.id) }
+      });
+      
+      if (!user) {
+        // Создаем нового пользователя
+        user = await prismaClient.user.create({
+          data: {
+            telegramId: BigInt(userData.id),
+            firstName: userData.first_name || '',
+            lastName: userData.last_name || null,
+            username: userData.username || null,
+            phone: null,
+            isActive: true,
+          }
+        });
+        console.log('✅ Новый пользователь создан:', user.id);
+      }
+      
+        req.user = user;
+      }
+    } else {
+      // Для разработки без Telegram
+      console.log('⚠️ Telegram данные не найдены, используем тестового пользователя');
+      const prismaClient = await getPrismaClient();
+      req.user = await prismaClient.user.findFirst({
+        where: { telegramId: BigInt(123456789) }
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('❌ Ошибка аутентификации:', error);
+    next();
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -569,7 +623,7 @@ app.get('/api/appointments', async (req, res) => {
     
     const skip = (Number(page) - 1) * Number(limit);
     
-    const where = { userId: 1 }; // Временно для тестирования
+    const where = { userId: req.user?.id }; // Используем аутентифицированного пользователя
     
     if (status) {
       where.status = status;
@@ -663,7 +717,7 @@ app.post('/api/appointments', async (req, res) => {
 
     const appointment = await prismaClient.appointment.create({
       data: {
-        userId: 1, // Временно для тестирования
+        userId: req.user?.id, // Используем аутентифицированного пользователя
         masterId: parseInt(masterId),
         serviceId: parseInt(serviceId),
         appointmentDate: appointmentDateTime,

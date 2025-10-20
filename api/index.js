@@ -132,7 +132,6 @@ async function initializeDatabase() {
         description: 'Классический маникюр с покрытием гель-лаком',
         price: 1500,
         duration: 60,
-        category: 'Маникюр',
         isActive: true,
       }
     });
@@ -143,7 +142,6 @@ async function initializeDatabase() {
         description: 'Аппаратный педикюр с покрытием гель-лаком',
         price: 2000,
         duration: 90,
-        category: 'Педикюр',
         isActive: true,
       }
     });
@@ -154,7 +152,6 @@ async function initializeDatabase() {
         description: 'Коррекция формы бровей воском',
         price: 800,
         duration: 30,
-        category: 'Брови',
         isActive: true,
       }
     });
@@ -165,7 +162,6 @@ async function initializeDatabase() {
         description: 'Окрашивание бровей краской',
         price: 1200,
         duration: 45,
-        category: 'Брови',
         isActive: true,
       }
     });
@@ -1180,7 +1176,7 @@ app.delete('/api/admin/masters/:id', async (req, res) => {
 // Create service
 app.post('/api/admin/services', async (req, res) => {
   try {
-    const { name, description, price, duration, category, masterIds } = req.body;
+    const { name, description, price, duration, masterIds } = req.body;
     console.log('🔍 Создаем услугу...');
 
     if (!name || !price || !duration) {
@@ -1200,7 +1196,6 @@ app.post('/api/admin/services', async (req, res) => {
         description: description || '',
         price: parseInt(price),
         duration: parseInt(duration),
-        category: category || 'other',
         isActive: true
       }
     });
@@ -1234,7 +1229,7 @@ app.post('/api/admin/services', async (req, res) => {
 app.put('/api/admin/services/:id', async (req, res) => {
   try {
     const serviceId = parseInt(req.params.id);
-    const { name, description, price, duration, category, masterIds } = req.body;
+    const { name, description, price, duration, masterIds } = req.body;
     console.log('🔍 Обновляем услугу с ID:', serviceId);
 
     // Получаем безопасный Prisma Client
@@ -1247,8 +1242,7 @@ app.put('/api/admin/services/:id', async (req, res) => {
         name,
         description,
         price: parseInt(price),
-        duration: parseInt(duration),
-        category
+        duration: parseInt(duration)
       }
     });
 

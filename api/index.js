@@ -273,11 +273,14 @@ app.use(async (req, res, next) => {
   try {
     // Получаем данные Telegram из заголовков
     const telegramInitData = req.headers['x-telegram-init-data'];
+    console.log('🔍 Заголовки запроса:', req.headers);
+    console.log('🔍 Telegram Init Data:', telegramInitData);
     
     if (telegramInitData) {
       // Парсим initData (это URL-encoded строка)
       const urlParams = new URLSearchParams(telegramInitData);
       const userParam = urlParams.get('user');
+      console.log('🔍 User param:', userParam);
       
       if (userParam) {
         const userData = JSON.parse(userParam);
@@ -307,12 +310,26 @@ app.use(async (req, res, next) => {
         req.user = user;
       }
     } else {
-      // Для разработки без Telegram
+      // Для разработки без Telegram или если данные не передались
       console.log('⚠️ Telegram данные не найдены, используем тестового пользователя');
       const prismaClient = await getPrismaClient();
       req.user = await prismaClient.user.findFirst({
         where: { telegramId: BigInt(123456789) }
       });
+      
+      if (!req.user) {
+        console.log('❌ Тестовый пользователь не найден, создаем нового');
+        req.user = await prismaClient.user.create({
+          data: {
+            telegramId: BigInt(123456789),
+            firstName: 'Тестовый',
+            lastName: 'Пользователь',
+            username: 'testuser',
+            phone: '+7 (999) 123-45-67',
+            isActive: true,
+          }
+        });
+      }
     }
     
     next();
@@ -619,11 +636,19 @@ app.get('/api/services/:id', async (req, res) => {
 app.get('/api/appointments', async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
-    console.log('🔍 Получаем записи...');
+    console.log('🔍 Получаем записи для пользователя:', req.user?.id);
+    console.log('🔍 Пользователь:', req.user);
+    
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Пользователь не аутентифицирован'
+      });
+    }
     
     const skip = (Number(page) - 1) * Number(limit);
     
-    const where = { userId: req.user?.id }; // Используем аутентифицированного пользователя
+    const where = { userId: req.user.id }; // Используем аутентифицированного пользователя
     
     if (status) {
       where.status = status;
@@ -673,6 +698,14 @@ app.get('/api/appointments', async (req, res) => {
 app.post('/api/appointments', async (req, res) => {
   try {
     const { masterId, serviceId, appointmentDate, notes } = req.body;
+    console.log('🔍 Создаем запись для пользователя:', req.user?.id);
+
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Пользователь не аутентифицирован'
+      });
+    }
 
     if (!masterId || !serviceId || !appointmentDate) {
       return res.status(400).json({

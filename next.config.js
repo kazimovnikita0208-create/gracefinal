@@ -2,8 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  output: 'standalone',
   images: {
-    domains: ['localhost', 'grace-backend-9a4n.vercel.app'],
+    domains: ['localhost'],
     unoptimized: true
   },
   

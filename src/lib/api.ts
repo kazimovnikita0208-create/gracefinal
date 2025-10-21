@@ -13,8 +13,7 @@ import {
   AppointmentStatus
 } from '@/types';
 
-// Используем mock данные вместо API
-const API_BASE_URL = '';
+const API_BASE_URL = '/api';
 
 // Общий класс для работы с API
 class ApiClient {
@@ -98,21 +97,11 @@ class ApiClient {
 
   // Методы для работы с мастерами
   async getMasters(): Promise<ApiResponse<Master[]>> {
-    return Promise.resolve({
-      success: true,
-      data: mockData.masters
-    });
+    return this.request<Master[]>('/masters');
   }
 
   async getMaster(masterId: number): Promise<ApiResponse<Master>> {
-    const master = mockData.masters.find(m => m.id === masterId);
-    if (!master) {
-      throw new Error('Master not found');
-    }
-    return Promise.resolve({
-      success: true,
-      data: master
-    });
+    return this.request<Master>(`/masters/${masterId}`);
   }
 
   async getMasterSchedule(masterId: number): Promise<ApiResponse<any[]>> {
@@ -131,21 +120,11 @@ class ApiClient {
 
   // Методы для работы с услугами
   async getServices(): Promise<ApiResponse<Service[]>> {
-    return Promise.resolve({
-      success: true,
-      data: mockData.services
-    });
+    return this.request<Service[]>('/services');
   }
 
   async getService(serviceId: number): Promise<ApiResponse<Service>> {
-    const service = mockData.services.find(s => s.id === serviceId);
-    if (!service) {
-      throw new Error('Service not found');
-    }
-    return Promise.resolve({
-      success: true,
-      data: service
-    });
+    return this.request<Service>(`/services/${serviceId}`);
   }
 
   async getServicesByMaster(masterId: number): Promise<ApiResponse<Service[]>> {
@@ -154,31 +133,15 @@ class ApiClient {
 
   // Методы для работы с записями
   async createAppointment(appointmentData: CreateAppointmentRequest): Promise<ApiResponse<Appointment>> {
-    // Mock создание записи
-    const newAppointment: Appointment = {
-      id: Date.now(),
-      userId: 1,
-      masterId: appointmentData.masterId,
-      serviceId: appointmentData.serviceId,
-      appointmentDate: appointmentData.appointmentDate,
-      notes: appointmentData.notes,
-      totalPrice: 2000,
-      status: AppointmentStatus.PENDING,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    return Promise.resolve({
-      success: true,
-      data: newAppointment
+    return this.request<Appointment>('/appointments', {
+      method: 'POST',
+      body: JSON.stringify(appointmentData),
     });
   }
 
   async getMyAppointments(status?: string): Promise<ApiResponse<Appointment[]>> {
-    // Mock данные записей
-    return Promise.resolve({
-      success: true,
-      data: []
-    });
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.request<Appointment[]>(`/appointments${query}`);
   }
 
   async getUserAppointments(userId: number): Promise<ApiResponse<Appointment[]>> {
